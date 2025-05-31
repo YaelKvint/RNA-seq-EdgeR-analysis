@@ -1,0 +1,59 @@
+# Obtain reference genome
+wget http://ftp.ensembl.org/pub/release-86/fasta/homo_sapiens/dna/homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz | gunzip Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+
+
+# Obtain genome annotations file 
+wget ftp://ftp.ensembl.org/pub/release-86/gtf/homo_sapiens/Homo_sapiens.GRCh38.86.gtf.gz | gunzip ftp://ftp.ensembl.org/pub/release-86/gtf/homo_sapiens/Homo_sapiens.GRCh38.86.gtf.gz
+
+
+# Obtain sample data
+
+# Check quality of data
+salloc -N1 -t1:00:00 --ntasks=8 # optional 
+module load java fastqc
+fastqc *.fq.gz
+
+
+# Obtain HISAT2 index 
+wget https://genome-idx.s3.amazonaws.com/hisat/grch38_snptran.tar.gz | tar -xvf grch38_snp_tran
+
+
+# Run HISAT2 alignments by modifying the following code: 
+module load hisat2
+hisat2 -p 8 --rg-id=file_name --rg SM:file_name --rg PL:ILLUMINA -x/path_to_hisat2_index --rna-strandness RF -1 /path_to_read1 -2 /path_to_read2 -S ./file_name.sam
+
+
+# Convert all SAM files to BAM files by modifying the following code:
+module load samtools
+samtools sort -@ 8 -n -o my_sample_1.bam my_sample_1.sam
+
+
+# Load in a virtual environment
+module load python/3
+virtualenv --no-download $HOME/htseq
+source $HOME/htseq/bin/activate
+pip install --noindex --upgrade pip
+pip install --no-index htseq
+
+
+# Do read counting with HTSeq for each BAM file by modifying the following code (create with a .sh batch script if needed):
+htseq-count --format bam --order name --mode intersection-strict --stranded reverse --minaqual 1 --type exon --idattr gene_id /path_to_hisat2_alignment/sample.bam /path_to_gtf/gtfname.gtf > name.tsv
+
+
+# Create a matrix with all file information
+my_data1.tsv my_data2.tsv | join - my_data3.tsv | join - my_data4.tsv | join - my_data5.tsv | join - my_data6.tsv > gene_read_counts_table_all.tsv
+
+
+# Create a new file with header, then merge with .tsv 
+echo "GeneID rep1 rep2 rep3 rep4 rep5 rep6" > header.txt 
+cat header.txt gene_read_counts_table_all.tsv > gene_read_counts_table_all_final.tsv
+
+# File is now ready for edgeR analysis 
+
+
+
+
+
+
+
+
