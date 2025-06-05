@@ -36,7 +36,7 @@ MDS_plot <- plotMDS(normalized_DGElist, main = "Multidimensional Scaling Plot fo
 dev.copy(png, "MDS_plot.png", width = 1000, height = 800, res = 150)
 dev.off() 
 
-# Estimate sispersion
+# Estimate dispersion
 normalized_DGElist <- estimateCommonDisp(normalized_DGElist , verbose=TRUE)
 
 # Perform differential expression testing 
